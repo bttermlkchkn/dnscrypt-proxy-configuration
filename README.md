@@ -47,7 +47,7 @@ cat /etc/resolv.conf
 
 ## 🛠️ Configuration
 
-Save this content as `dnscrypt-proxy.toml`.
+Save this content as `dnscrypt-proxy.toml` or git clone the repo and move the file.
 
 ```toml
 listen_addresses = ['127.0.0.1:53']
@@ -72,7 +72,8 @@ require_nolog = true
 require_nofilter = false
 
 ignore_system_dns = true
-bootstrap_resolvers = ['9.9.9.9:53', '8.8.8.8:53']
+# Quad9 and mullvad as bootstrap resolvers
+bootstrap_resolvers = ['9.9.9.9:53', '194.242.2.2:53']
 netprobe_address = '9.9.9.9:53'
 netprobe_timeout = 60
 
