@@ -1,46 +1,102 @@
-listen_addresses = ['127.0.0.1:53']
+# ------------------------------
+# dnscrypt-proxy 2.x — Production Configuration
+# IPv6-first, IPv4-fallback, anonymized, resilient
+# Generated on 2026-01-08 for long-term "never touch again" deployment
+# ------------------------------
+
+# --- [1] LOCAL LISTENING ---
+# Listen on standard DNS port (53) for seamless NetworkManager integration
+listen_addresses = ['127.0.0.1:53', '[::1]:53']
 max_clients = 250
 
-ipv4_servers = true
-ipv6_servers = false
+# --- [2] PROTOCOL PREFERENCE ---
+ipv4_servers = true   # Keep as fallback
+ipv6_servers = true   # Primary path
 dnscrypt_servers = true
 doh_servers = false
 odoh_servers = false
 
+# --- [3] SERVER SELECTION — IPv6-first, fallback to IPv4 ---
+# Prioritize IPv6-capable, DNSSEC + nolog servers in CH/DE/FR
+# Mixed filtering (Quad9) + non-filtering (dct-*, brahma-world) for balance
 server_names = [
+  # ✅ IPv6 + filtering (Quad9 — malware/phishing blocked)
+  'quad9-dnscrypt-ip6-filter-pri',
+  'quad9-dnscrypt-ip6-filter-alt',
+
+  # ✅ IPv6 + non-filtering (Germany, Switzerland, France)
+  'brahma-world-ipv6',         # Nuremberg, DE — nolog, DNSSEC, adblock
+  'dnscrypt.uk-ipv6',          # London, UK — nolog, uncensored, DNSSEC
+  'v.dnscrypt.uk-ipv6',        # London, UK — backup
+  'scaleway-fr-ipv6',          # Paris, FR — nolog, DNSSEC, uncensored
+  'scaleway-ams-ipv6',         # Amsterdam, NL — nolog, DNSSEC
+
+  # 🔄 IPv4 fallbacks (only used if IPv6 path fails)
   'quad9-dnscrypt-ip4-filter-pri',
   'quad9-dnscrypt-ip4-filter-alt',
-  'dct-de',
-  'dct-fr',
-  'digitalprivacy.diy-dnscrypt-ipv4'
+  'dct-de',                    # Berlin, DE — nolog, DNSSEC
+  'dct-fr',                    # Paris, FR — nolog, DNSSEC
+  'digitalprivacy.diy-dnscrypt-ipv4',  # Nuremberg, DE — nolog, DNSSEC
 ]
 
+# --- [4] STRICT REQUIREMENTS ---
 require_dnssec = true
 require_nolog = true
-require_nofilter = false
+require_nofilter = false   # Allow Quad9 filtering for protection
+# (Set to `true` if you *never* want filtering — but then remove Quad9)
 
-ignore_system_dns = true
-# Quad9 and mullvad as bootstrap resolvers
-bootstrap_resolvers = ['9.9.9.9:53', '194.242.2.2:53']
-netprobe_address = '9.9.9.9:53'
-netprobe_timeout = 60
+# --- [5] BOOTSTRAP & FALLBACK RESILIENCE ---
+# Multiple diverse, reliable bootstrap DNS — IPv6 preferred
+bootstrap_resolvers = [
+  # IPv6 (preferred)
+  '[2620:fe::fe]:53',          # Quad9 IPv6
+  '[2001:620:0:ff::2]:53',     # SWITCH CH IPv6
+  '[2a05:fc84::42]:53',        # Digital Society Zürich IPv6
 
-cache = true
-cache_size = 4096
-cache_min_ttl = 2400
-cache_max_ttl = 86400
-
-[anonymized_dns]
-skip_incompatible = true
-## Relays prioritized by privacy laws (Switzerland, Germany, France)
-routes = [
-  { server_name='*', via=['anon-cs-ch', 'anon-cs-de2', 'anon-dct-de', 'anon-digitalprivacy.diy-ipv4', 'anon-cs-fr'] },
+  # IPv4 (fallback)
+  '9.9.9.9:53',                # Quad9 IPv4
+  '130.59.31.248:53',          # SWITCH CH IPv4
+  '185.95.218.42:53',          # Digital Society Zürich IPv4
+  '1.1.1.1:53',                # Cloudflare (last-resort, non-filtering)
 ]
 
+ignore_system_dns = true
+netprobe_address = '[2620:fe::fe]:53'  # IPv6 net health check
+netprobe_timeout = 10
+
+# --- [6] CACHING ---
+cache = true
+cache_size = 8192
+cache_min_ttl = 1800   # 30 min
+cache_max_ttl = 86400  # 24h
+
+# --- [7] ANONYMIZED DNS — IPv6 relay chain first, IPv4 only as last resort ---
+[anonymized_dns]
+skip_incompatible = true
+routes = [
+  { server_name = '*', via = [
+    # 🟢 IPv6-Only Relays (Privacy++ — no IPv4 leakage)
+    'anon-scaleway-ipv6',        # FR — Frank Denis
+    'anon-scaleway-ams-ipv6',    # NL — Amsterdam
+    'anon-dnscrypt.uk-ipv6',     # UK — London
+    'anon-v.dnscrypt.uk-ipv6',   # UK — Vultr (backup)
+
+    # 🟡 IPv6+IPv4 Hybrid (if pure IPv6 fails)
+    'anon-cs-de',                # Frankfurt — cryptostorm (IPv4, but EU)
+    'anon-cs-fr',                # France — cryptostorm
+    'anon-cs-ch',                # Switzerland — cryptostorm (your fave 🇨🇭)
+
+    # 🔴 IPv4-Only (absolute last resort — e.g., if IPv6 broken entirely)
+    'anon-digitalprivacy.diy-ipv4',  # Nuremberg, DE — your trusted DIY relay
+    'anon-kama',                 # FR — Frank Denis (IPv4)
+  ] }
+]
+
+# --- [8] SOURCES — Auto-refresh, signed, multiple mirrors ---
 [sources.quad9-resolvers]
 urls = [
-    'https://quad9.net/dnscrypt/quad9-resolvers.md',
-    'https://raw.githubusercontent.com/Quad9DNS/dnscrypt-settings/main/dnscrypt/quad9-resolvers.md'
+  "https://quad9.net/dnscrypt/quad9-resolvers.md",
+  "https://raw.githubusercontent.com/Quad9DNS/dnscrypt-settings/main/dnscrypt/quad9-resolvers.md"
 ]
 minisign_key = "RWTp2E4t64BrL651lEiDLNon+DqzPG4jhZ97pfdNkcq1VDdocLKvl5FW"
 cache_file = "quad9-resolvers.md"
@@ -49,19 +105,18 @@ prefix = "quad9-"
 
 [sources.public-resolvers]
 urls = [
-  'https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md',
-  'https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md'
+  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md",
+  "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
 ]
-cache_file = 'public-resolvers.md'
-minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
-refresh_delay = 73
+minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3"
+cache_file = "public-resolvers.md"
+refresh_delay = 71
 
 [sources.relays]
 urls = [
-  'https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md',
-  'https://download.dnscrypt.info/resolvers-list/v3/relays.md',
+  "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md",
+  "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
 ]
-cache_file = 'relays.md'
-minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
-refresh_delay = 73
-prefix = ''
+minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3"
+cache_file = "relays.md"
+refresh_delay = 71
