@@ -1,7 +1,7 @@
 # ------------------------------
 # dnscrypt-proxy 2.x — Production Configuration
 # IPv6-first, IPv4-fallback, anonymized, resilient
-# Generated on 2026-01-08 for long-term "never touch again" deployment
+# Generated on 2026-06-14 for long-term "never touch again" deployment
 # ------------------------------
 
 # --- [1] LOCAL LISTENING ---
