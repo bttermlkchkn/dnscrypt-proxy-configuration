@@ -2,7 +2,7 @@
 
 A hardened `dnscrypt-proxy` configuration focused on **Anonymized DNS**, strict European jurisdiction filtering, and zero-leak resilience.
 
-<img width="880" height="275" alt="image" src="https://github.com/user-attachments/assets/948dba5e-8593-4399-847f-50b458da01be" />
+<img width="630" height="1106" alt="imagen" src="https://github.com/user-attachments/assets/18b0104e-2247-467f-8c5f-0e06a28c06c7" />
 
 ## 🛡️ Key Features
 
